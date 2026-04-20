@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import jwt
+import time
 from providers.gemini import GeminiProvider
 from providers.ollama import OllamaProvider
 from agent.tool_registry import default_registry
@@ -108,6 +109,26 @@ def validate_token(token: Annotated[str, Header()]) -> dict:
         "providers": decoded_token.get("providers"),
         "tools": decoded_token.get("tools"),
     }
+
+@app.post("/get/token")
+async def get_token():
+    '''
+    Generate a sample JWT token with provider and tool permissions.
+    '''
+    payload = {
+        "sub": "user123",
+        "name": "John Doe",
+        "iat": 1620000000,
+        "exp": time.time() + 3600,  # token valid for 1 hour
+        "role": "user",
+        "providers": ["ollama"],
+        "tools": ["web_search", "db_query", "summarizer"]
+    }
+
+    secret_key = os.getenv("JWT_SECRET")
+    token = jwt.encode(payload, secret_key, algorithm="HS256")
+    return {"access_token": token}
+
 
 @app.post("/agent/run")
 async def run_agent(
